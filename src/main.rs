@@ -28,7 +28,8 @@ fn main()
     let vertex_buffer = glium::VertexBuffer::new(&display, &triangle).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    let vertex_shader_src = r#"
+    let vertex_shader_src =
+    r#"
         #version 140
         in vec2 position;
 
@@ -37,12 +38,13 @@ fn main()
         }
     "#;
 
-    let fragment_shader_src = r#"
+    let fragment_shader_src =
+    r#"
         #version 140
         out vec4 color;
 
         void main() {
-        color = vec4(0.5, 0.2, 0.0, 1.0);
+        color = vec4(1.0, 1.0, 1.0, 1.0);
         }
     "#;
 
