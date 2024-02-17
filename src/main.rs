@@ -25,13 +25,14 @@ fn main()
     #[derive(Copy, Clone)]
     struct Point
     {
-        position: [f32; 2],
+        pos: [f32; 2],
+        col: [f32; 3],
     }
-    implement_vertex!(Point, position);
+    implement_vertex!(Point, pos, col);
 
-    let vert1 = Point { position: [-0.5, -0.5] };
-    let vert2 = Point { position: [ 0.0, 0.5] };
-    let vert3 = Point { position: [ 0.5, -0.25] };
+    let vert1 = Point { pos: [-0.5, -0.5], col: [1.0, 0.0, 0.0] };
+    let vert2 = Point { pos: [ 0.0, 0.5], col: [0.0, 1.0, 0.0]  };
+    let vert3 = Point { pos: [ 0.5, -0.25], col: [0.0, 0.0, 1.0]  };
     let triangle = vec![vert1, vert2, vert3];
 
     let vertex_buffer = glium::VertexBuffer::new(&display, &triangle).expect("vertex buffer");
@@ -41,27 +42,30 @@ fn main()
     let vertex_shader =
     r#"
         #version 140
-        in vec2 position;
 
-        uniform float x;
-        uniform float y;
+        in vec2 pos;
+        in vec3 col;
+
+        out vec3 vertex_color;
+
+        uniform mat4 matrix;
 
         void main()
         {
-            vec2 pos = position;
-            pos.x += x;
-            pos.y += y;
-            gl_Position = vec4(pos, 0.0, 1.0);
+            vertex_color = col;
+            gl_Position = matrix * vec4(pos, 0.0, 1.0);
         }
     "#;
 
     let fragment_shader =
     r#"
         #version 140
+
+        in vec3 vertex_color;
         out vec4 color;
 
         void main() {
-        color = vec4(1.0, 1.0, 1.0, 1.0);
+        color = vec4(vertex_color, 1.0);
         }
     "#;
 
@@ -69,8 +73,7 @@ fn main()
                   .expect("program");
 
     //event handling
-    let mut x_axis: f32 = 0.0;
-    let mut y_axis: f32 = 0.0;
+    let mut time: f32 = 0.0;
     event_loop.run(move |event, window_target|
         {
             //println!("{:?}", event);
@@ -85,10 +88,17 @@ fn main()
 
                     winit::event::WindowEvent::RedrawRequested =>
                     {
-                        x_axis += 0.02;
-                        y_axis += 0.01;
-                        let x_sine = x_axis.sin() * 0.5;
-                        let y_sine = y_axis.sin() * 0.5;
+                        time += 0.005;
+                        let uniforms = uniform!
+                        {
+                            matrix:
+                            [
+                                [time.cos(), time.sin(), 0.0, 0.0],
+                                [-time.sin(), time.cos(), 0.0, 0.0],
+                                [0.0, 0.0, 1.0, 0.0],
+                                [0.0 , 0.0, 0.0, 1.0f32],
+                            ]
+                        };
 
                         // frame buffer
                         let mut frame :Frame = display.draw();
@@ -98,7 +108,7 @@ fn main()
 
                         //draw triangle
                         frame.draw(&vertex_buffer, &indices,
-                                   &program, &uniform! {x: x_sine,y: y_sine},
+                                   &program, &uniforms,
                                    &Default::default())
                                    .expect("triangle draw");
 
