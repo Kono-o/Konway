@@ -1,7 +1,8 @@
 #[macro_use]
 extern crate glium;
-
 use glium::{Frame, Surface};
+
+mod model;
 
 const WINDOW_TITLE: &str = "Konway";
 const WINDOW_SIZE: u32 = 500;
@@ -21,39 +22,23 @@ fn main()
     // glium display
     let (_window, display) = context_window.build(&event_loop);
 
-    //TRIANGLE :)
-    #[derive(Copy, Clone)]
-    struct Point
-    {
-        pos: [f32; 2],
-        col: [f32; 3],
-    }
-    implement_vertex!(Point, pos, col);
-
-    let vert1 = Point { pos: [-0.5, -0.5], col: [1.0, 0.0, 0.0] };
-    let vert2 = Point { pos: [ 0.0, 0.5], col: [0.0, 1.0, 0.0]  };
-    let vert3 = Point { pos: [ 0.5, -0.25], col: [0.0, 0.0, 1.0]  };
-    let triangle = vec![vert1, vert2, vert3];
-
-    let vertex_buffer = glium::VertexBuffer::new(&display, &triangle).expect("vertex buffer");
-    //set indices to no for drawing only disjointed triangles
-    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    //model data
+    let positions = glium::VertexBuffer::new(&display, &model::VERTICES).expect("model position");
+    let normals = glium::VertexBuffer::new(&display, &model::NORMALS).expect("model normals");
+    let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &model::INDICES).expect("model indices");
 
     let vertex_shader =
     r#"
         #version 140
 
-        in vec2 pos;
-        in vec3 col;
-
-        out vec3 vertex_color;
+        in vec3 position;
+        in vec3 normal;
 
         uniform mat4 matrix;
 
         void main()
         {
-            vertex_color = col;
-            gl_Position = matrix * vec4(pos, 0.0, 1.0);
+            gl_Position = matrix * vec4(position, 1.0);
         }
     "#;
 
@@ -61,11 +46,11 @@ fn main()
     r#"
         #version 140
 
-        in vec3 vertex_color;
         out vec4 color;
 
-        void main() {
-        color = vec4(vertex_color, 1.0);
+        void main()
+        {
+            color = vec4(1.0, 1.0, 1.0, 1.0);
         }
     "#;
 
@@ -73,7 +58,6 @@ fn main()
                   .expect("program");
 
     //event handling
-    let mut time: f32 = 0.0;
     event_loop.run(move |event, window_target|
         {
             //println!("{:?}", event);
@@ -88,14 +72,13 @@ fn main()
 
                     winit::event::WindowEvent::RedrawRequested =>
                     {
-                        time += 0.005;
                         let uniforms = uniform!
                         {
                             matrix:
                             [
-                                [time.cos(), time.sin(), 0.0, 0.0],
-                                [-time.sin(), time.cos(), 0.0, 0.0],
-                                [0.0, 0.0, 1.0, 0.0],
+                                [0.01, 0.0, 0.0, 0.0],
+                                [0.0, 0.01 , 0.0, 0.0],
+                                [0.0, 0.0, 0.01, 0.0],
                                 [0.0 , 0.0, 0.0, 1.0f32],
                             ]
                         };
@@ -107,10 +90,8 @@ fn main()
                         frame.clear_color(0.0, 0.0, 0.0, 1.0);
 
                         //draw triangle
-                        frame.draw(&vertex_buffer, &indices,
-                                   &program, &uniforms,
-                                   &Default::default())
-                                   .expect("triangle draw");
+                        frame.draw((&positions, &normals), &indices, &program, &uniforms,
+                                    &Default::default()).expect("triangle draw");
 
                         //finish draw
                         frame.finish().expect("frame finish");
