@@ -7,6 +7,8 @@ mod model;
 const WINDOW_TITLE: &str = "Konway";
 const WINDOW_SIZE: u32 = 500;
 
+const LIGHT_DIR: [f32; 3] = [-1.0, 0.4, 0.9f32];
+
 fn main()
 {
     // winit event loop
@@ -29,15 +31,18 @@ fn main()
 
     let vertex_shader =
     r#"
-        #version 140
+        #version 150
 
         in vec3 position;
         in vec3 normal;
+
+        out vec3 v_normal;
 
         uniform mat4 matrix;
 
         void main()
         {
+            v_normal = transpose(inverse(mat3(matrix))) * normal;
             gl_Position = matrix * vec4(position, 1.0);
         }
     "#;
@@ -46,11 +51,18 @@ fn main()
     r#"
         #version 140
 
+        in vec3 v_normal;
         out vec4 color;
+        uniform vec3 u_light;
 
         void main()
         {
-            color = vec4(1.0, 1.0, 1.0, 1.0);
+            float brightness = dot(normalize(v_normal), normalize(u_light));
+
+            vec3 def_color = vec3(0.58, 0.83, 1);
+            vec3 shadow_col = vec3(0.08, 0.5, 0.78);
+
+             color = vec4(mix(shadow_col, def_color, brightness), 1.0);
         }
     "#;
 
@@ -80,7 +92,8 @@ fn main()
                                 [0.0, 0.01 , 0.0, 0.0],
                                 [0.0, 0.0, 0.01, 0.0],
                                 [0.0 , 0.0, 0.0, 1.0f32],
-                            ]
+                            ],
+                            u_light: LIGHT_DIR
                         };
 
                         // frame buffer
