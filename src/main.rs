@@ -70,6 +70,7 @@ fn main()
                   .expect("program");
 
     //event handling
+    let mut t: f32 = 0.0;
     event_loop.run(move |event, window_target|
         {
             //println!("{:?}", event);
@@ -84,13 +85,16 @@ fn main()
 
                     winit::event::WindowEvent::RedrawRequested =>
                     {
+                        t += 0.02;
+                        let ts = 0.01 * t.sin();
+                        let tc = 0.01 * t.cos();
                         let uniforms = uniform!
                         {
                             matrix:
                             [
-                                [0.01, 0.0, 0.0, 0.0],
-                                [0.0, 0.01 , 0.0, 0.0],
-                                [0.0, 0.0, 0.01, 0.0],
+                                [tc,0.0, ts, 0.0],
+                                [0.0, 0.01, 0.0, 0.0],
+                                [-ts, 0.0, tc, 0.0],
                                 [0.0 , 0.0, 0.0, 1.0f32],
                             ],
                             u_light: LIGHT_DIR
@@ -100,11 +104,21 @@ fn main()
                         let mut frame :Frame = display.draw();
 
                         // fill frame with black
-                        frame.clear_color(0.0, 0.0, 0.0, 1.0);
+                        frame.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
 
-                        //draw triangle
-                        frame.draw((&positions, &normals), &indices, &program, &uniforms,
-                                    &Default::default()).expect("triangle draw");
+                        let params = glium::DrawParameters
+                        {
+                            depth: glium::Depth
+                            {
+                                test: glium::draw_parameters::DepthTest::IfLess,
+                                write: true,
+                                .. Default::default()
+                            },
+                            .. Default::default()
+                        };
+
+                        //draw model
+                        frame.draw((&positions, &normals), &indices, &program, &uniforms, &params).expect("triangle draw");
 
                         //finish draw
                         frame.finish().expect("frame finish");
