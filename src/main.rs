@@ -1,132 +1,100 @@
 #[macro_use]
 extern crate glium;
-use glium::{Frame, Surface};
+use glium::
+{ Surface,
+  uniforms::{ MagnifySamplerFilter, MinifySamplerFilter }
+};
 
-mod model;
+use std::sync::Arc;
+use game_loop::game_loop;
+
+mod konway;
+mod polygon;
+mod shaders;
 
 const WINDOW_TITLE: &str = "Konway";
-const WINDOW_SIZE: u32 = 500;
+const WINDOW_SIZE: u32 = 800;
 
-const LIGHT_DIR: [f32; 3] = [-1.0, 0.4, 0.9f32];
+const TICK_RATE: u32 = 5;
 
-fn main()
+const TRANS_MATRIX: [[f32; 4]; 4] =
+[
+    [1.0,0.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0, 0.0],
+    [0.0, 0.0, 1.0, 0.0],
+    [0.0 , 0.0, 0.0, 1.0f32],
+];
+
+pub fn main()
 {
-    // winit event loop
-    let event_loop = winit::event_loop::EventLoopBuilder::new()
-        .build()
+    //winit event loop
+    let event_loop = winit::event_loop::EventLoopBuilder::new().build()
         .expect("event loop creation");
 
-    // glutin window and ogl context
-    let context_window = glium::backend::glutin::SimpleWindowBuilder::new()
+    //glutin window + ogl context + glium display
+    let window_builder = glium::backend::glutin::SimpleWindowBuilder::new()
         .with_title(WINDOW_TITLE)
         .with_inner_size(WINDOW_SIZE,WINDOW_SIZE);
+    let (window, display) = window_builder.build(&event_loop);
+    window.set_resizable(false);
 
-    // glium display
-    let (_window, display) = context_window.build(&event_loop);
+    //polygon data
+    let points = glium::VertexBuffer::new(&display, &polygon::POINTS)
+        .expect("polygon positions");
+    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    //model data
-    let positions = glium::VertexBuffer::new(&display, &model::VERTICES).expect("model position");
-    let normals = glium::VertexBuffer::new(&display, &model::NORMALS).expect("model normals");
-    let indices = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &model::INDICES).expect("model indices");
+    //shader code
+    let vert_shader: &str = shaders::VERT;
+    let frag_shader: &str = shaders::FRAG;
+    let shaders = glium::Program::from_source
+        (&display, vert_shader, frag_shader, None)
+        .expect("shaders");
 
-    let vertex_shader =
-    r#"
-        #version 150
+    //ogl texture filtering
+    let _behavior = glium::uniforms::SamplerBehavior
+    {
+        minify_filter: MinifySamplerFilter::Nearest,
+        magnify_filter: MagnifySamplerFilter::Nearest,
+        ..Default::default()
+    };
 
-        in vec3 position;
-        in vec3 normal;
+    //new game impl
+    let gol = konway::Konway::new();
 
-        out vec3 v_normal;
-
-        uniform mat4 matrix;
-
-        void main()
+    //game-loop with winit event loop
+     game_loop(event_loop, Arc::new(window), gol, TICK_RATE, 0.1,
+       move |g|
         {
-            v_normal = transpose(inverse(mat3(matrix))) * normal;
-            gl_Position = matrix * vec4(position, 1.0);
-        }
-    "#;
-
-    let fragment_shader =
-    r#"
-        #version 140
-
-        in vec3 v_normal;
-        out vec4 color;
-        uniform vec3 u_light;
-
-        void main()
-        {
-            float brightness = dot(normalize(v_normal), normalize(u_light));
-
-            vec3 def_color = vec3(0.58, 0.83, 1);
-            vec3 shadow_col = vec3(0.08, 0.5, 0.78);
-
-             color = vec4(mix(shadow_col, def_color, brightness), 1.0);
-        }
-    "#;
-
-    let program = glium::Program::from_source(&display, vertex_shader, fragment_shader, None)
-                  .expect("program");
-
-    //event handling
-    let mut t: f32 = 0.0;
-    event_loop.run(move |event, window_target|
-        {
-            //println!("{:?}", event);
-
-            match event
+            /*logic functions (dependent on tick-rate)*/
+            let uniforms = uniform!
             {
-                winit::event::Event::WindowEvent { event, .. } =>
-                match event
-                {
-                    winit::event::WindowEvent::CloseRequested => window_target.exit(),
-                    winit::event::WindowEvent::Resized(window_size) => display.resize(window_size.into()),
-
-                    winit::event::WindowEvent::RedrawRequested =>
-                    {
-                        t += 0.02;
-                        let ts = 0.01 * t.sin();
-                        let tc = 0.01 * t.cos();
-                        let uniforms = uniform!
-                        {
-                            matrix:
-                            [
-                                [tc,0.0, ts, 0.0],
-                                [0.0, 0.01, 0.0, 0.0],
-                                [-ts, 0.0, tc, 0.0],
-                                [0.0 , 0.0, 0.0, 1.0f32],
-                            ],
-                            u_light: LIGHT_DIR
-                        };
-
-                        // frame buffer
-                        let mut frame :Frame = display.draw();
-
-                        // fill frame with black
-                        frame.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
-
-                        let params = glium::DrawParameters
-                        {
-                            depth: glium::Depth
-                            {
-                                test: glium::draw_parameters::DepthTest::IfLess,
-                                write: true,
-                                .. Default::default()
-                            },
-                            .. Default::default()
-                        };
-
-                        //draw model
-                        frame.draw((&positions, &normals), &indices, &program, &uniforms, &params).expect("triangle draw");
-
-                        //finish draw
-                        frame.finish().expect("frame finish");
-                    }
-                    _ => (),
-                },
-                winit::event::Event::AboutToWait => _window.request_redraw(),
-                _ => (),
+                matrix: TRANS_MATRIX,
+                //glium::uniforms::Sampler(&texture, behavior)
             };
-        }).expect("event loop run");
+            //konway tick
+            let _ = g.game.tick();
+            // frame buffer
+            let mut frame = display.draw();
+            // fill frame with black
+            frame.clear_color(0.0, 0.0, 0.0, 1.0);
+            //draw square
+            frame.draw(&points, &indices,
+                       &shaders, &uniforms,
+                       &Default::default())
+                .expect("square draw");
+            //finish draw
+            frame.finish().expect("frame finish");
+
+        },
+        |_g|
+        {
+            /*render functions (independent of tick-rate,
+             will try to render as fast as possible)*/
+        },
+        |g, event|
+        {
+            //window event handling
+            if !g.game.win_close(event) { g.exit();}
+        })
+        .expect("game loop");
 }
