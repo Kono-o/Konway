@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rand = "0.8.5"
 image = "0.24.8"
 glium = "0.34.0"
 winit = "0.29.10"

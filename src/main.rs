@@ -15,7 +15,7 @@ mod shaders;
 const WINDOW_TITLE: &str = "Konway";
 const WINDOW_SIZE: u32 = 800;
 
-const TICK_RATE: u32 = 5;
+const TICK_RATE: u32 = 20;
 
 const TRANS_MATRIX: [[f32; 4]; 4] =
 [
@@ -51,7 +51,7 @@ pub fn main()
         .expect("shaders");
 
     //ogl texture filtering
-    let _behavior = glium::uniforms::SamplerBehavior
+    let behavior = glium::uniforms::SamplerBehavior
     {
         minify_filter: MinifySamplerFilter::Nearest,
         magnify_filter: MagnifySamplerFilter::Nearest,
@@ -59,20 +59,25 @@ pub fn main()
     };
 
     //new game impl
-    let gol = konway::Konway::new();
+    let mut gol = konway::Konway::new();
+    let _texture = glium::texture::Texture2d::new(&display, gol.generate()).unwrap();
 
     //game-loop with winit event loop
      game_loop(event_loop, Arc::new(window), gol, TICK_RATE, 0.1,
        move |g|
         {
             /*logic functions (dependent on tick-rate)*/
+
+            //konway tick
+            let texture = glium::texture::Texture2d::new(&display, g.game.tick()).unwrap();
+
+            //ogl static data
             let uniforms = uniform!
             {
                 matrix: TRANS_MATRIX,
-                //glium::uniforms::Sampler(&texture, behavior)
+                tex: glium::uniforms::Sampler(&texture, behavior),
             };
-            //konway tick
-            let _ = g.game.tick();
+
             // frame buffer
             let mut frame = display.draw();
             // fill frame with black

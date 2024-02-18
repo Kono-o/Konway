@@ -27,6 +27,6 @@ r#"
         void main()
         {
              color = texture(tex, v_tex_coords);
-             color = vec4(1.0, 0.0, 0.0, 1.0);
+
         }
 "#;
