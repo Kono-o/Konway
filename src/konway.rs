@@ -93,16 +93,16 @@ impl Konway
                     if *pixel == BLACK
                     {
                         *pixel = Rgba([
-                            (f32::from(buffr[(x,y)].0[0])*FADER)as u8,
-                            (f32::from(buffr[(x,y)].0[1])*FADER)as u8,
+                            (f32::from(buffr[(x,y)].0[0])*FADER*FADER*0.99)as u8,
+                            (f32::from(buffr[(x,y)].0[1])*FADER*FADER)as u8,
                             (f32::from(buffr[(x,y)].0[2])*FADER)as u8,
                             BRIGHTNESS]);
                     }
                     else
                     {
                         *pixel = Rgba([
-                            (f32::from(pixel.0[0])*FADER)as u8,
-                            (f32::from(pixel.0[1])*FADER)as u8,
+                            (f32::from(pixel.0[0])*FADER*FADER*0.99)as u8,
+                            (f32::from(pixel.0[1])*FADER*FADER)as u8,
                             (f32::from(pixel.0[2])*FADER)as u8,
                             BRIGHTNESS]);
                     }
