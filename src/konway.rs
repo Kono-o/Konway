@@ -3,7 +3,7 @@ use image;
 use image::{Rgba, RgbaImage};
 use rand::{Rng, thread_rng};
 
-const CANVAS_SIZE: u32 = 200;
+const CANVAS_SIZE: u32 = 250;
 
 const PROBABILTY: u32 =  6;
 
@@ -29,8 +29,8 @@ impl Konway
     pub fn pause(&mut self)
     {
         self.paused = !self.paused;
-        if self.paused {println!("paused");}
-        else {println!("unpaused");}
+        /*if self.paused {println!("paused");}
+        else {println!("unpaused");}*/
     }
 
     pub fn init(&mut self, tps: u8) -> RawImage2d<'static, u8>
@@ -56,7 +56,7 @@ impl Konway
         if !self.paused
         {
             self.game_tick += 1;
-            println!("game tick: {}", self.game_tick);
+            //println!("game tick: {}", self.game_tick);
 
             let buffr = &<image::ImageBuffer<Rgba<u8>, Vec<u8>> as Clone>::clone(&self.canvas);
             let _neigbours: u8 = 0;

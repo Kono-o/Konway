@@ -17,7 +17,7 @@ mod polygon;
 mod shaders;
 
 const WINDOW_TITLE: &str = "Konway";
-const WINDOW_SIZE: u32 = 800;
+const WINDOW_SIZE: u32 = 900;
 
 const TICK_RATE: u32 = 20;
 
