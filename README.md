@@ -3,4 +3,6 @@
 
 Conway's game of life simulator written in rust with [glium ](https://github.com/glium/glium) , [game-loop](https://github.com/tuzz/game-loop) and [image](https://github.com/image-rs/image).
 
-Randomly generates canvas at runtime. Press `p` to start/pause. 
+Randomly generates canvas at runtime. Press `p` to start/pause.
+
+
