@@ -66,7 +66,7 @@ pub fn main()
 
     //new game impl
     let mut gol = konway::Konway::new();
-    let mut texture = glium::texture::Texture2d::new(&display, gol.init(TICK_RATE as u8)).unwrap();
+    let mut texture = glium::texture::Texture2d::new(&display, gol.init(TICK_RATE as u8,true)).unwrap();
     //game-loop with winit event loop
      game_loop(event_loop, Arc::new(window), gol, TICK_RATE, 0.1,
        move |g|
@@ -113,6 +113,7 @@ pub fn main()
                                     match event.key_without_modifiers().as_ref()
                                     {
                                         Key::Character("p") => g.game.pause(),
+                                        Key::Character("g") => {let _ = g.game.init(TICK_RATE as u8, false);},
                                         _ => {},
                                     }
                                 }

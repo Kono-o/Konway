@@ -7,11 +7,11 @@ const CANVAS_SIZE: u32 = 250;
 
 const PROBABILTY: u32 =  6;
 
-const BRIGHTNESS: u8 = 255;
-const FADER: f32 = 0.96;
+const MAX: u8 = 255;
+const FADE: f32 = 0.96;
 
-const WHITE: Rgba<u8> = Rgba([BRIGHTNESS, BRIGHTNESS, BRIGHTNESS, BRIGHTNESS]);
-const BLACK: Rgba<u8> = Rgba([0, 0, 0, BRIGHTNESS]);
+const WHITE: Rgba<u8> = Rgba([MAX, MAX, MAX, MAX]);
+const BLACK: Rgba<u8> = Rgba([0, 0, 0, MAX]);
 
 #[derive(Default)]
 pub struct Konway
@@ -33,10 +33,10 @@ impl Konway
         else {println!("unpaused");}*/
     }
 
-    pub fn init(&mut self, tps: u8) -> RawImage2d<'static, u8>
+    pub fn init(&mut self, tps: u8, first: bool) -> RawImage2d<'static, u8>
     {
         self.tps = tps;
-        self.paused = true;
+        self.paused = first;
         self.canvas = RgbaImage::new(CANVAS_SIZE, CANVAS_SIZE);
 
         for (_x, _y, pixel) in self.canvas.enumerate_pixels_mut()
@@ -93,18 +93,18 @@ impl Konway
                     if *pixel == BLACK
                     {
                         *pixel = Rgba([
-                            (f32::from(buffr[(x,y)].0[0])*FADER*FADER*0.99)as u8,
-                            (f32::from(buffr[(x,y)].0[1])*FADER*FADER)as u8,
-                            (f32::from(buffr[(x,y)].0[2])*FADER)as u8,
-                            BRIGHTNESS]);
+                            (f32::from(buffr[(x,y)].0[0])* FADE * FADE *0.99)as u8,
+                            (f32::from(buffr[(x,y)].0[1])* FADE * FADE)as u8,
+                            (f32::from(buffr[(x,y)].0[2])* FADE)as u8,
+                            MAX]);
                     }
                     else
                     {
                         *pixel = Rgba([
-                            (f32::from(pixel.0[0])*FADER*FADER*0.99)as u8,
-                            (f32::from(pixel.0[1])*FADER*FADER)as u8,
-                            (f32::from(pixel.0[2])*FADER)as u8,
-                            BRIGHTNESS]);
+                            (f32::from(pixel.0[0])* FADE * FADE *0.99)as u8,
+                            (f32::from(pixel.0[1])* FADE * FADE)as u8,
+                            (f32::from(pixel.0[2])* FADE)as u8,
+                            MAX]);
                     }
                 }
             }
