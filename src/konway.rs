@@ -1,32 +1,42 @@
 use glium::texture::RawImage2d;
-use winit::event::{WindowEvent, Event };
 use image;
 use image::{Rgba, RgbaImage};
 use rand::{Rng, thread_rng};
 
-const CANVAS_SIZE: u32 = 50;
+const CANVAS_SIZE: u32 = 200;
 
-const PROBABILTY: u32 =  8;
+const PROBABILTY: u32 =  6;
 
 const BRIGHTNESS: u8 = 255;
+const FADER: f32 = 0.96;
+
 const WHITE: Rgba<u8> = Rgba([BRIGHTNESS, BRIGHTNESS, BRIGHTNESS, BRIGHTNESS]);
 const BLACK: Rgba<u8> = Rgba([0, 0, 0, BRIGHTNESS]);
 
 #[derive(Default)]
 pub struct Konway
 {
+    tps: u8,
+    game_tick: u32,
+    paused: bool,
     canvas: RgbaImage,
 }
 
 impl Konway
 {
-    pub fn new() -> Self
+    pub fn new() -> Self {Self::default()}
+
+    pub fn pause(&mut self)
     {
-        Self::default()
+        self.paused = !self.paused;
+        if self.paused {println!("paused");}
+        else {println!("unpaused");}
     }
 
-    pub fn generate(&mut self) -> RawImage2d<'static, u8>
+    pub fn init(&mut self, tps: u8) -> RawImage2d<'static, u8>
     {
+        self.tps = tps;
+        self.paused = true;
         self.canvas = RgbaImage::new(CANVAS_SIZE, CANVAS_SIZE);
 
         for (_x, _y, pixel) in self.canvas.enumerate_pixels_mut()
@@ -34,7 +44,6 @@ impl Konway
             let rng = thread_rng().gen_ratio(1, PROBABILTY);
             if rng { *pixel = WHITE; }
             else { *pixel = BLACK; }
-
         }
         let image = RawImage2d::from_raw_rgba_reversed
             (&<image::ImageBuffer<Rgba<u8>, Vec<u8>> as Clone>::clone(&self.canvas).into_raw(), (CANVAS_SIZE,CANVAS_SIZE));
@@ -44,56 +53,64 @@ impl Konway
 
     pub fn tick(&mut self)  -> RawImage2d<'static, u8>
     {
-        let buffr = &<image::ImageBuffer<Rgba<u8>, Vec<u8>> as Clone>::clone(&self.canvas);
-        let mut neigbours: u8;
-
-        for (x, y, pixel) in self.canvas.enumerate_pixels_mut()
+        if !self.paused
         {
-            neigbours = 0;
-            //border prevention
-            if !(x == 0 || x == CANVAS_SIZE-1 || y == 0 || y == CANVAS_SIZE-1)
+            self.game_tick += 1;
+            println!("game tick: {}", self.game_tick);
+
+            let buffr = &<image::ImageBuffer<Rgba<u8>, Vec<u8>> as Clone>::clone(&self.canvas);
+            let _neigbours: u8 = 0;
+
+            for (x, y, pixel) in self.canvas.enumerate_pixels_mut()
             {
-                //println!("{} {}", x, y);
-                //cardinal neighbours
-                if buffr[(x+1,y)] == WHITE { neigbours += 1; }
-                if buffr[(x-1,y)] == WHITE { neigbours += 1; }
-                if buffr[(x,y+1)] == WHITE { neigbours += 1; }
-                if buffr[(x,y+1)] == WHITE { neigbours += 1; }
-                //diagonal neighbours
-                if buffr[(x+1,y+1)] == WHITE { neigbours += 1; }
-                if buffr[(x-1,y-1)] == WHITE { neigbours += 1; }
-                if buffr[(x-1,y+1)] == WHITE { neigbours += 1; }
-                if buffr[(x+1,y-1)] == WHITE { neigbours += 1; }
-
-                if *pixel == WHITE
+                //border prevention
+                if !(x == 0 || x == CANVAS_SIZE-1 || y == 0 || y == CANVAS_SIZE-1)
                 {
-                    if neigbours < 2 || neigbours > 3 { *pixel = BLACK; }
-                }
-                else { if neigbours == 3 { *pixel = WHITE; } }
-            }
-            else { *pixel = BLACK }
-        };
+                    let mut neighbours = 0;
+                    //cardinals
+                    if buffr[(x-1,y)] == WHITE {neighbours += 1;}
+                    if buffr[(x+1,y)] == WHITE {neighbours += 1;}
+                    if buffr[(x,y-1)] == WHITE {neighbours += 1;}
+                    if buffr[(x,y+1)] == WHITE {neighbours += 1;}
+                    //diagonals
+                    if buffr[(x-1,y-1)] == WHITE {neighbours += 1;}
+                    if buffr[(x+1,y+1)] == WHITE {neighbours += 1;}
+                    if buffr[(x+1,y-1)] == WHITE {neighbours += 1;}
+                    if buffr[(x-1,y+1)] == WHITE {neighbours += 1;}
 
+                    if buffr[(x,y)] == WHITE
+                    {
+                        if neighbours < 2 || neighbours > 3 {*pixel = BLACK}
+                    }
+                    else { if neighbours == 3 {*pixel = WHITE}}
+                }
+                else {*pixel = BLACK;}
+            };
+            for (x, y, pixel) in self.canvas.enumerate_pixels_mut()
+            {
+                if *pixel != WHITE
+                {
+                    if *pixel == BLACK
+                    {
+                        *pixel = Rgba([
+                            (f32::from(buffr[(x,y)].0[0])*FADER)as u8,
+                            (f32::from(buffr[(x,y)].0[1])*FADER)as u8,
+                            (f32::from(buffr[(x,y)].0[2])*FADER)as u8,
+                            BRIGHTNESS]);
+                    }
+                    else
+                    {
+                        *pixel = Rgba([
+                            (f32::from(pixel.0[0])*FADER)as u8,
+                            (f32::from(pixel.0[1])*FADER)as u8,
+                            (f32::from(pixel.0[2])*FADER)as u8,
+                            BRIGHTNESS]);
+                    }
+                }
+            }
+        }
         let image = RawImage2d::from_raw_rgba_reversed
             (&<image::ImageBuffer<Rgba<u8>, Vec<u8>> as Clone>::clone(&self.canvas).into_raw(), (CANVAS_SIZE,CANVAS_SIZE));
         return image
-    }
-
-    pub fn win_close(&self, event: &Event<()>) -> bool
-    {
-        match event
-        {
-            Event::WindowEvent { event, .. } =>
-            match event
-            {
-                WindowEvent::CloseRequested =>
-                {
-                    return false;
-                },
-                _ => {},
-            },
-            _ => {},
-        }
-        true
     }
 }

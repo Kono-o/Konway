@@ -1,12 +1,16 @@
-#[macro_use]
+#![macro_use]
+#![allow(unused_assignments)]
 extern crate glium;
+use glium::uniform;
+use std::sync::Arc;
+use game_loop::game_loop;
+use winit::event::{ElementState, Event, WindowEvent};
+use winit::keyboard::Key;
+use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use glium::
 { Surface,
   uniforms::{ MagnifySamplerFilter, MinifySamplerFilter }
 };
-
-use std::sync::Arc;
-use game_loop::game_loop;
 
 mod konway;
 mod polygon;
@@ -27,6 +31,8 @@ const TRANS_MATRIX: [[f32; 4]; 4] =
 
 pub fn main()
 {
+    let mut tick: u32 = 0;
+
     //winit event loop
     let event_loop = winit::event_loop::EventLoopBuilder::new().build()
         .expect("event loop creation");
@@ -60,23 +66,19 @@ pub fn main()
 
     //new game impl
     let mut gol = konway::Konway::new();
-    let _texture = glium::texture::Texture2d::new(&display, gol.generate()).unwrap();
-
+    let mut texture = glium::texture::Texture2d::new(&display, gol.init(TICK_RATE as u8)).unwrap();
     //game-loop with winit event loop
      game_loop(event_loop, Arc::new(window), gol, TICK_RATE, 0.1,
        move |g|
         {
-            /*logic functions (dependent on tick-rate)*/
+            /*logic functions (update frequency dependent on tick-rate)*/
 
-            //konway tick
-            let texture = glium::texture::Texture2d::new(&display, g.game.tick()).unwrap();
+            //game update
+            if tick > TICK_RATE || tick == 0 {texture = glium::texture::Texture2d::new(&display, g.game.tick()).unwrap();}
+            tick += 1;
 
             //ogl static data
-            let uniforms = uniform!
-            {
-                matrix: TRANS_MATRIX,
-                tex: glium::uniforms::Sampler(&texture, behavior),
-            };
+            let uniforms = uniform! {matrix: TRANS_MATRIX,tex: glium::uniforms::Sampler(&texture, behavior),};
 
             // frame buffer
             let mut frame = display.draw();
@@ -85,21 +87,40 @@ pub fn main()
             //draw square
             frame.draw(&points, &indices,
                        &shaders, &uniforms,
-                       &Default::default())
-                .expect("square draw");
+                       &Default::default()).expect("square draw");
             //finish draw
-            frame.finish().expect("frame finish");
-
+             frame.finish().expect("frame finish");
         },
         |_g|
         {
             /*render functions (independent of tick-rate,
-             will try to render as fast as possible)*/
+             will try to update as fast as possible)
+             currently unimplemented*/
         },
-        |g, event|
+        move |g, event|
         {
-            //window event handling
-            if !g.game.win_close(event) { g.exit();}
-        })
-        .expect("game loop");
+            /*window event handling*/
+            match event
+            {
+                Event::WindowEvent { event, .. } =>
+                    match event
+                    {
+                        WindowEvent::CloseRequested => g.exit(),
+                        WindowEvent::KeyboardInput { event, .. } =>
+                            {
+                                if event.state == ElementState::Pressed && !event.repeat
+                                {
+                                    match event.key_without_modifiers().as_ref()
+                                    {
+                                        Key::Character("1") => g.game.pause(),
+                                        _ => {},
+                                    }
+                                }
+                            }
+                        _ => {},
+                    },
+                _ => {},
+            }
+        }
+     ).expect("game loop");
 }
