@@ -112,7 +112,7 @@ pub fn main()
                                 {
                                     match event.key_without_modifiers().as_ref()
                                     {
-                                        Key::Character("1") => g.game.pause(),
+                                        Key::Character("p") => g.game.pause(),
                                         _ => {},
                                     }
                                 }
