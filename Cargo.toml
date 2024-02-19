@@ -2,6 +2,9 @@
 name = "konway"
 version = "0.1.0"
 edition = "2021"
+description = "Conway's Game of Life in Rust"
+license = "MIT"
+authors = ["Kono"]
 
 [dependencies]
 rand = "0.8.5"
