@@ -1,5 +1,5 @@
 #![macro_use]
-#![allow(unused_assignments)]
+
 extern crate glium;
 use glium::uniform;
 use std::sync::Arc;
