@@ -19,7 +19,7 @@ mod shaders;
 const WINDOW_TITLE: &str = "Konway";
 const WINDOW_SIZE: u32 = 900;
 
-const TICK_RATE: u32 = 20;
+const TICK_RATE: u32 = 15;
 
 const TRANS_MATRIX: [[f32; 4]; 4] =
 [
@@ -113,7 +113,7 @@ pub fn main()
                                     match event.key_without_modifiers().as_ref()
                                     {
                                         Key::Character("p") => g.game.pause(),
-                                        Key::Character("g") => {let _ = g.game.init(TICK_RATE as u8, false);},
+                                        Key::Character("g") => {let _ = g.game.init(TICK_RATE as u8, true);},
                                         _ => {},
                                     }
                                 }

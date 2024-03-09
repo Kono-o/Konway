@@ -5,7 +5,7 @@ use rand::{Rng, thread_rng};
 
 const CANVAS_SIZE: u32 = 250;
 
-const PROBABILTY: u32 =  6;
+const PROBABILTY: u32 =  32;
 
 const MAX: u8 = 255;
 const FADE: f32 = 0.96;
@@ -33,15 +33,25 @@ impl Konway
         else {println!("unpaused");}*/
     }
 
-    pub fn init(&mut self, tps: u8, first: bool) -> RawImage2d<'static, u8>
+    pub fn forward(&mut self)
+    {
+        if self.paused
+        {
+            self.paused = false;
+            self.tick();
+            self.paused = true;
+        }
+    }
+    pub fn init(&mut self, tps: u8, pause: bool) -> RawImage2d<'static, u8>
     {
         self.tps = tps;
-        self.paused = first;
+        self.paused = pause;
         self.canvas = RgbaImage::new(CANVAS_SIZE, CANVAS_SIZE);
-
+        
+        let probability = thread_rng().gen_range(2..PROBABILTY);
         for (_x, _y, pixel) in self.canvas.enumerate_pixels_mut()
         {
-            let rng = thread_rng().gen_ratio(1, PROBABILTY);
+            let rng = thread_rng().gen_ratio(1, probability);
             if rng { *pixel = WHITE; }
             else { *pixel = BLACK; }
         }
